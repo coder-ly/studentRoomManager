@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <:include file="../common/css.html" title="成绩信息表管理"/>
+</head>
+<body>
+<!-- 正文开始 -->
+<div class="layui-fluid">
+  <div class="layui-card">
+    <div class="layui-card-body">
+      <!-- 表格工具栏 -->
+      <form class="layui-form toolbar">
+        <div class="layui-form-item">
+          <div class="layui-inline">
+            <label class="layui-form-label">班级编号:</label>
+            <div class="layui-input-inline">
+              <input name="classNo" class="layui-input" placeholder="输入班级编号"/>
+            </div>
+          </div>
+          <div class="layui-inline">
+            <label class="layui-form-label">课程名称:</label>
+            <div class="layui-input-inline">
+              <input name="courseName" class="layui-input" placeholder="输入课程课程名称"/>
+            </div>
+          </div>
+          <div class="layui-inline">
+            <label class="layui-form-label">学生学号:</label>
+            <div class="layui-input-inline">
+              <input name="studentNo" class="layui-input" placeholder="输入学生学号"/>
+            </div>
+          </div>
+          <div class="layui-inline">
+            <label class="layui-form-label">学期号:</label>
+            <div class="layui-input-inline">
+              <select name="trem">
+                <option value="">请选择</option>
+                <:for items="${semesterList}" var="item">
+                  <option value="${item.dictDataId}">${item.dictDataName}</option>
+                </:for>
+              </select>
+            </div>
+          </div>
+          <div class="layui-inline">&emsp;
+            <button class="layui-btn icon-btn" lay-filter="scoreTbSearch" lay-submit>
+              <i class="layui-icon">&#xe615;</i>搜索
+            </button>
+          </div>
+        </div>
+      </form>
+      <!-- 数据表格 -->
+      <table id="scoreTable" lay-filter="scoreTable"></table>
+    </div>
+  </div>
+</div>
+<!-- 表格操作列 -->
+<script type="text/html" id="scoreTbBar">
+  <!--  <a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="edit">修改</a>-->
+  <a class="layui-btn layui-btn-danger layui-btn-xs"
+     data-dropdown="#scoreTbDelDrop{{d.LAY_INDEX}}" no-shade="true">删除</a>
+  <div class="dropdown-menu-nav dropdown-popconfirm dropdown-top-right layui-hide"
+       id="scoreTbDelDrop{{d.LAY_INDEX}}"
+       style="max-width: 200px;white-space: normal;min-width: auto;margin-left: 10px;">
+    <div class="dropdown-anchor"></div>
+    <div class="dropdown-popconfirm-title">
+      <i class="layui-icon layui-icon-help"></i>
+      确定要删除吗？
+    </div>
+    <div class="dropdown-popconfirm-btn">
+      <a class="layui-btn" btn-cancel>取消</a>
+      <a class="layui-btn layui-btn-normal" lay-event="del">确定</a>
+    </div>
+  </div>
+</script>
+<!-- 表单弹窗 -->
+<script type="text/html" id="scoreEditDialog">
+  <form id="scoreEditForm" lay-filter="scoreEditForm" class="layui-form model-form">
+    <input name="id" type="hidden"/>
+    <div class="layui-form-item">
+      <label class="layui-form-label layui-form-required">班级:</label>
+      <div class="layui-input-block">
+        <select name="classNo" lay-filter="classSelect" lay-verify="required" required>
+          <option value="">请选择班级</option>
+          <:for items="${classList}" var="item">
+            <option value="${item.id}">${item.classNo}---${item.className}</option>
+          </:for>
+        </select>
+      </div>
+    </div>
+    <div class="layui-form-item">
+      <label class="layui-form-label layui-form-required">学生:</label>
+      <div class="layui-input-block">
+        <select name="studentNo" id="studentNo" lay-filter="studentSelect" lay-verify="required" required>
+          <option value="">请选择学生</option>
+        </select>
+      </div>
+    </div>
+    <div class="layui-form-item">
+      <label class="layui-form-label  layui-form-required">学期号:</label>
+      <div class="layui-input-block">
+        <select name="trem" lay-verify="required" required>
+          <option value="">请选择</option>
+          <:for items="${semesterList}" var="item">
+            <option value="${item.dictDataId}">${item.dictDataName}</option>
+          </:for>
+        </select>
+      </div>
+    </div>
+    <div class="layui-form-item">
+      <label class="layui-form-label layui-form-required">课程:</label>
+      <div class="layui-input-block">
+        <select name="courseNo" id="course" lay-verify="required" required>
+          <option value="">请选择课程</option>
+        </select>
+      </div>
+    </div>
+    <div class="layui-form-item">
+      <label class="layui-form-label layui-form-required">成绩:</label>
+      <div class="layui-input-block">
+        <input name="score" placeholder="请输入成绩" class="layui-input"
+               lay-verify="required|numberX" lay-verType="tips" required/>
+      </div>
+    </div>
+    <div class="layui-form-item text-right">
+      <button class="layui-btn" lay-filter="scoreEditSubmit" lay-submit>保存</button>
+      <button class="layui-btn layui-btn-primary" type="button" ew-event="closeDialog">取消</button>
+    </div>
+  </form>
+</script>
+<:include file="../common/js.html"/>
+<script>
+  layui.use(['layer', 'form', 'table', 'tableX', 'util', 'admin', 'dropdown', 'formX'], function () {
+    var $ = layui.jquery;
+    var layer = layui.layer;
+    var form = layui.form;
+    var table = layui.table;
+    var tableX = layui.tableX;
+    var util = layui.util;
+    var admin = layui.admin;
+    var formX = layui.formX;
+
+    /* 渲染表格 */
+    var insTb = tableX.render({
+      elem: '#scoreTable',
+      url: 'score/page',
+      page: true,
+      toolbar: ['<p>',
+        '<button lay-event="add" class="layui-btn layui-btn-sm icon-btn"><i class="layui-icon">&#xe654;</i>添加</button>&nbsp;',
+        '<button lay-event="del" class="layui-btn layui-btn-sm layui-btn-danger icon-btn"><i class="layui-icon">&#xe640;</i>删除</button>',
+        '</p>'].join(''),
+      cellMinWidth: 100,
+      cols: [[
+        {type: 'checkbox'},
+        {type: 'numbers'},
+        {field: 'classNo', title: '班级', sort: true},
+        {field: 'trueName', title: '姓名', sort: true},
+        {field: 'idCard', title: '学号', sort: true},
+        {field: 'dataName', title: '学期', sort: true},
+        {field: 'courseName', title: '课程', sort: true},
+        {field: 'score', title: '成绩', sort: true},
+        {
+          field: 'createTime', title: '创建时间', templet: function (d) {
+            return util.toDateString(d.createTime);
+          }, sort: true
+        },
+        {title: '操作', toolbar: '#scoreTbBar', align: 'center', width: 100}
+      ]]
+    });
+
+    /* 表格搜索 */
+    form.on('submit(scoreTbSearch)', function (data) {
+      insTb.reload({where: data.field, page: {curr: 1}});
+      return false;
+    });
+
+    /* 表格工具条点击事件 */
+    table.on('tool(scoreTable)', function (obj) {
+      if ('edit' === obj.event) { // 修改
+        showEditModel(obj.data);
+      } else if ('del' === obj.event) { // 删除
+        doDel(obj);
+      }
+    });
+
+    /* 表格头工具栏点击事件 */
+    table.on('toolbar(scoreTable)', function (obj) {
+      if ('add' === obj.event) { // 添加
+        showEditModel();
+      } else if ('del' === obj.event) { // 删除
+        var checkRows = table.checkStatus('scoreTable');
+        if (0 === checkRows.data.length) {
+          return layer.msg('请选择要删除的数据', {icon: 2, anim: 6});
+        }
+        var ids = checkRows.data.map(function (d) {
+          return d.id;
+        });
+        doDel({ids: ids});
+      }
+    });
+
+    /* 显示表单弹窗 */
+    function showEditModel(mData) {
+      admin.open({
+        type: 1,
+        area: ["550px", "400px"],
+        title: (mData ? '修改' : '添加') + '成绩信息',
+        content: $('#scoreEditDialog').html(),
+        success: function (layero, dIndex) {
+          // 禁止出现滚动条
+          $(layero).children('.layui-layer-content').css('overflow', 'visible');
+          // 回显表单数据
+          form.val('scoreEditForm', mData);
+          // 表单提交事件
+          form.on('submit(scoreEditSubmit)', function (data) {
+            var loadIndex = layer.load(2);
+            $.post(mData ? 'score/update' : 'score/save', data.field, function (res) {
+              layer.close(loadIndex);
+              if (0 === res.code) {
+                layer.close(dIndex);
+                layer.msg(res.msg, {icon: 1});
+                insTb.reload({page: {curr: 1}});
+              } else {
+                layer.msg(res.msg, {icon: 2, anim: 6});
+              }
+            });
+            return false;
+          });
+        }
+      });
+    }
+
+    /* 删除 */
+    function doDel(obj) {
+      if (obj.ids) {  // 批量删除
+        admin.confirm('确定要删除选中数据吗？', function (i) {
+          layer.close(i);
+          var loadIndex = layer.load(2);
+          admin.req('score/removeBatch', JSON.stringify(obj.ids), function (res) {
+            layer.close(loadIndex);
+            if (0 === res.code) {
+              layer.msg(res.msg, {icon: 1});
+              insTb.reload({page: {curr: 1}});
+            } else {
+              layer.msg(res.msg, {icon: 2, anim: 6});
+            }
+          }, 'post');
+        });
+      } else {  // 单个删除
+        var loadIndex = layer.load(2);
+        $.get('score/remove', {id: obj.data.id}, function (res) {
+          layer.close(loadIndex);
+          if (0 === res.code) {
+            layer.msg(res.msg, {icon: 1});
+            insTb.reload({page: {curr: 1}});
+          } else {
+            layer.msg(res.msg, {icon: 2, anim: 6});
+          }
+        });
+      }
+    }
+
+    form.on('select(classSelect)', function (data) {
+      if (data.value !== '') {
+        $.get('score/studentList', {classId: data.value}, function (res) {
+          let html = '<option value="">请选择</option>';
+          res.data.forEach((item, index) => {
+            html += '<option value="' + item.userId + '">' + (item.idCard + '---' + item.trueName) + '</option>';
+          })
+          $('#studentNo').html(html);
+          form.render('select');
+        });
+      }
+    });
+
+    form.on('select(studentSelect)', function (data) {
+      if (data.value !== '') {
+        $.get('score/courseList', {studentId: data.value}, function (res) {
+          let html = '<option value="">请选择</option>';
+          res.data.forEach((item, index) => {
+            html += '<option value="' + item.id + '">' + (item.courseName) + '</option>';
+          })
+          $('#course').html(html);
+          form.render('select');
+        });
+      }
+    });
+
+  });
+</script>
+</body>
+</html>

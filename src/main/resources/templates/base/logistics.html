@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <:include file="../common/css.html" title="后勤维修表管理"/>
+</head>
+<body>
+<!-- 正文开始 -->
+<div class="layui-fluid">
+  <div class="layui-card">
+    <div class="layui-card-body">
+      <!-- 表格工具栏 -->
+      <form class="layui-form toolbar">
+        <div class="layui-form-item">
+          <div class="layui-inline">
+            <label class="layui-form-label">宿舍编号:</label>
+            <div class="layui-input-inline">
+              <input name="roomName" class="layui-input" placeholder="输入宿舍编号"/>
+            </div>
+          </div>
+          <div class="layui-inline">
+            <label class="layui-form-label">学号:</label>
+            <div class="layui-input-inline">
+              <input name="studentNo" class="layui-input" placeholder="输入学号"/>
+            </div>
+          </div>
+          <div class="layui-inline">&emsp;
+            <button class="layui-btn icon-btn" lay-filter="logisticsTbSearch" lay-submit>
+              <i class="layui-icon">&#xe615;</i>搜索
+            </button>
+          </div>
+        </div>
+      </form>
+      <!-- 数据表格 -->
+      <table id="logisticsTable" lay-filter="logisticsTable"></table>
+    </div>
+  </div>
+</div>
+<!-- 表格操作列 -->
+<script type="text/html" id="logisticsTbBar">
+  <a class="layui-btn layui-btn-danger layui-btn-xs"
+     data-dropdown="#logisticsTbDelDrop{{d.LAY_INDEX}}" no-shade="true">删除</a>
+  <div class="dropdown-menu-nav dropdown-popconfirm dropdown-top-right layui-hide"
+       id="logisticsTbDelDrop{{d.LAY_INDEX}}"
+       style="max-width: 200px;white-space: normal;min-width: auto;margin-left: 10px;">
+    <div class="dropdown-anchor"></div>
+    <div class="dropdown-popconfirm-title">
+      <i class="layui-icon layui-icon-help"></i>
+      确定要删除吗？
+    </div>
+    <div class="dropdown-popconfirm-btn">
+      <a class="layui-btn" btn-cancel>取消</a>
+      <a class="layui-btn layui-btn-normal" lay-event="del">确定</a>
+    </div>
+  </div>
+</script>
+<!-- 表单弹窗 -->
+<:include file="../common/js.html"/>
+<script>
+  layui.use(['layer', 'form', 'table', 'tableX', 'util', 'admin', 'dropdown'], function () {
+    var $ = layui.jquery;
+    var layer = layui.layer;
+    var form = layui.form;
+    var table = layui.table;
+    var tableX = layui.tableX;
+    var util = layui.util;
+    var admin = layui.admin;
+
+    /* 渲染表格 */
+    var insTb = tableX.render({
+      elem: '#logisticsTable',
+      url: '${ctxPath}/base/logistics/page',
+      page: true,
+      toolbar: ['<p>',
+        '</p>'].join(''),
+      cellMinWidth: 100,
+      cols: [[
+        {type: 'checkbox'},
+        {type: 'numbers'},
+        {field: 'roomName', title: '宿舍编号', sort: true},
+        {field: 'studentNo', title: '学号', sort: true},
+        {field: 'studentName', title: '学生姓名', sort: true},
+        {
+          field: 'status', title: '状态', sort: true, templet: function (d) {
+            var str = "";
+            switch (d.status) {
+              case '0':
+                str = "已上报";
+                break;
+              case '1':
+                str = "维修中";
+                break;
+              case '2':
+                str = "维修完成";
+                break;
+            }
+            return str;
+          }
+        },
+        {field: 'comments', title: '上报备注', sort: true},
+        {
+          field: 'createTime', title: '创建时间', templet: function (d) {
+            return util.toDateString(d.createTime);
+          }, sort: true
+        },
+        {
+          title: '操作', align: 'center', width: 200, minWidth: 200, templet: function (d) {
+            var html = '<a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>';
+            if (d.status === '0') {
+              html += '<a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="service">维修</a>';
+            }
+            if (d.status === '1') {
+              html += '<a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="serviceOk">维修完成</a>';
+            }
+            return html;
+          }
+        }
+      ]]
+    });
+
+    /* 表格搜索 */
+    form.on('submit(logisticsTbSearch)', function (data) {
+      insTb.reload({where: data.field, page: {curr: 1}});
+      return false;
+    });
+
+    /* 表格工具条点击事件 */
+    table.on('tool(logisticsTable)', function (obj) {
+      if ('edit' === obj.event) { // 修改
+        showEditModel(obj.data);
+      } else if ('del' === obj.event) { // 删除
+        doDel(obj);
+      } else if ('service' === obj.event) {  //维修
+        updateStatus(obj.data.id, '1');
+      } else if ('serviceOk' === obj.event) {　//维修完成
+        updateStatus(obj.data.id, '2');
+      }
+    });
+
+    /* 表格头工具栏点击事件 */
+    table.on('toolbar(logisticsTable)', function (obj) {
+      if ('add' === obj.event) { // 添加
+        showEditModel();
+      } else if ('del' === obj.event) { // 删除
+        doDel(obj);
+      }
+    });
+
+    /* 显示表单弹窗 */
+    function showEditModel(mData) {
+      admin.open({
+        type: 1,
+        title: (mData ? '修改' : '添加') + '后勤维修表',
+        content: $('#logisticsEditDialog').html(),
+        success: function (layero, dIndex) {
+          // 回显表单数据
+          form.val('logisticsEditForm', mData);
+          // 表单提交事件
+          form.on('submit(logisticsEditSubmit)', function (data) {
+            var loadIndex = layer.load(2);
+            $.post(mData ? '${ctxPath}/base/logistics/update' : '${ctxPath}/base/logistics/save', data.field, function (res) {
+              layer.close(loadIndex);
+              if (0 === res.code) {
+                layer.close(dIndex);
+                layer.msg(res.msg, {icon: 1});
+                insTb.reload({page: {curr: 1}});
+              } else {
+                layer.msg(res.msg, {icon: 2, anim: 6});
+              }
+            });
+            return false;
+          });
+        }
+      });
+    }
+
+    /* 删除 */
+    function doDel(obj) {
+      layer.confirm('确定要删除吗？', {
+        shade: .1,
+        skin: 'layui-layer-admin'
+      }, function (i) {
+        layer.close(i);
+        layer.load(2);
+        $.post('${ctxPath}/base/logistics/remove', {
+          id: obj.data.id
+        }, function (res) {
+          layer.closeAll('loading');
+          if (res.code === 0) {
+            layer.msg(res.msg, {icon: 1});
+            insTb.reload({page: {curr: 1}});
+          } else {
+            layer.msg(res.msg, {icon: 2, anim: 6});
+          }
+        }, 'json');
+      });
+    }
+
+    //更新状态
+    function updateStatus(id, status) {
+      var index = layer.load(2);
+      $.ajax({
+        type: 'post',
+        url: '${ctxPath}/base/logistics/updateStatus',
+        data: {
+          id: id,
+          status: status
+        },
+        dataType: 'json',
+        success: function (res) {
+          layer.closeAll('loading');
+          if (0 === res.code) {
+            insTb.reload({page: {curr: 1}});
+            layer.msg(res.msg, {icon: 1});
+            layer.close(index);
+          } else {
+            layer.msg(res.msg, {icon: 2});
+          }
+        }
+      });
+    }
+
+  });
+</script>
+</body>
+</html>

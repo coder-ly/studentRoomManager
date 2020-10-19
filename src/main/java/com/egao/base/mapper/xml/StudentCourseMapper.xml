@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.egao.base.mapper.StudentCourseMapper">
+
+    <!-- 关联查询sql -->
+    <sql id="relSelect">
+        SELECT a.*, b.true_name trueName, c.course_name courseName, c.teacher_name teacherName, c.class_name
+        scrommName,d.class_name className
+        FROM tb_student_course a
+        left join sys_user b on a.student_no = b.user_id
+        left join tb_course c on a.course_no = c.id
+        left join tb_class d on b.class_no=d.id
+        <where>
+            <if test="page!=null and page.pageData!=null">
+                <if test="page.pageData.id != null">
+                    AND a.id = #{page.pageData.id}
+                </if>
+                <if test="page.pageData.studentNo != null">
+                    AND a.student_no = #{page.pageData.studentNo}
+                </if>
+                <if test="page.pageData.courseName != null">
+                    AND c.course_name LIKE CONCAT('%', #{page.pageData.courseName}, '%')
+                </if>
+                <if test="page.pageData.comments != null">
+                    AND a.comments LIKE CONCAT('%', #{page.pageData.comments}, '%')
+                </if>
+                <if test="page.pageData.deleted!=null">
+                    AND a.deleted = #{page.pageData.deleted}
+                </if>
+                <if test="page.pageData.deleted==null">
+                    AND a.deleted = 0
+                </if>
+                <if test="page.pageData.createTimeStart!=null">
+                    AND a.create_time &gt;= #{page.pageData.createTimeStart}
+                </if>
+                <if test="page.pageData.createTimeEnd!=null">
+                    AND a.create_time &lt;= #{page.pageData.createTimeEnd}
+                </if>
+            </if>
+        </where>
+    </sql>
+
+    <!-- 分页查询 -->
+    <select id="listPage" resultType="com.egao.base.entity.StudentCourse">
+        <include refid="relSelect"></include>
+    </select>
+
+    <!-- 查询全部 -->
+    <select id="listAll" resultType="com.egao.base.entity.StudentCourse">
+        <include refid="relSelect"></include>
+    </select>
+
+</mapper>

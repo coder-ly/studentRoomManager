@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.egao.base.mapper.ScoreMapper">
+
+    <!-- 关联查询sql -->
+    <sql id="relSelect">
+        SELECT a.id,
+        a.trem,
+        a.score,
+        a.create_time,
+        b.true_name trueName,
+        b.id_card idCard,
+        c.course_name courseName,
+        c.teacher_name teacherName,
+        d.class_no classNo,
+        e.dict_data_name dataName
+        FROM tb_score a
+        left join sys_user b on a.student_no = b.user_id
+        left join tb_course c on a.course_no = c.id
+        left join tb_class d on a.class_no = d.id
+        left join sys_dictionary_data e on a.trem = e.dict_data_id
+        <where>
+            <if test="page!=null and page.pageData!=null">
+                <if test="page.pageData.id != null">
+                    AND a.id = #{page.pageData.id}
+                </if>
+                <if test="page.pageData.studentNo != null">
+                    AND b.id_card= #{page.pageData.studentNo}
+                </if>
+                <if test="page.pageData.teacherNo != null">
+                    AND c.teacher_no= #{page.pageData.teacherNo}
+                </if>
+                <if test="page.pageData.trem != null">
+                    AND a.trem = #{page.pageData.trem}
+                </if>
+                <if test="page.pageData.courseName != null">
+                    AND c.course_name LIKE CONCAT('%', #{page.pageData.courseName}, '%')
+                </if>
+                <if test="page.pageData.classNo != null">
+                    AND d.class_no = #{page.pageData.classNo}
+                </if>
+                <if test="page.pageData.classNoA != null">
+                    AND a.class_no = #{page.pageData.classNoA}
+                </if>
+                <if test="page.pageData.deleted!=null">
+                    AND a.deleted = #{page.pageData.deleted}
+                </if>
+                <if test="page.pageData.deleted==null">
+                    AND a.deleted = 0
+                </if>
+            </if>
+        </where>
+    </sql>
+
+    <!-- 分页查询 -->
+    <select id="listPage" resultType="com.egao.base.entity.Score">
+        <include refid="relSelect"></include>
+    </select>
+
+    <!-- 查询全部 -->
+    <select id="listAll" resultType="com.egao.base.entity.Score">
+        <include refid="relSelect"></include>
+    </select>
+
+    <select id="selectCourseList" resultType="com.egao.base.entity.Course">
+        select c.*
+        from `app-sms`.sys_user a
+        left join tb_student_course b on a.user_id = b.student_no
+        left join tb_course c on b.course_no = c.id
+        WHERE
+        a.user_id = #{studentId,jdbcType=INTEGER} AND a.deleted = 0 AND b.deleted = 0 AND c.deleted = 0
+        <if test="teacherNo!=null">
+            AND c.teacher_no = #{teacherNo,jdbcType=INTEGER}
+        </if>
+    </select>
+
+</mapper>

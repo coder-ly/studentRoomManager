@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <:include file="../common/css.html" title="教室信息管理"/>
+</head>
+<body>
+<!-- 正文开始 -->
+<div class="layui-fluid">
+  <div class="layui-card">
+    <div class="layui-card-body">
+      <!-- 表格工具栏 -->
+      <form class="layui-form toolbar">
+        <div class="layui-form-item">
+          <div class="layui-inline">
+            <label class="layui-form-label">使用状态</label>
+            <div class="layui-input-inline">
+              <select name="status">
+                <option value="">请选择</option>
+                <option value="0">空闲中</option>
+                <option value="1">使用中</option>
+              </select>
+            </div>
+          </div>
+          <div class="layui-inline">&emsp;
+            <button class="layui-btn icon-btn" lay-filter="scroomTbSearch" lay-submit>
+              <i class="layui-icon">&#xe615;</i>搜索
+            </button>
+          </div>
+        </div>
+      </form>
+      <!-- 数据表格 -->
+      <table id="scroomTable" lay-filter="scroomTable"></table>
+    </div>
+  </div>
+</div>
+<!-- 表格操作列 -->
+<script type="text/html" id="scroomTbBar">
+
+</script>
+<!-- 表单弹窗 -->
+<script type="text/html" id="scroomEditDialog">
+
+</script>
+<:include file="../common/js.html"/>
+<script>
+  layui.use(['layer', 'form', 'table', 'tableX', 'util', 'admin', 'dropdown', 'formX'], function () {
+    var $ = layui.jquery;
+    var layer = layui.layer;
+    var form = layui.form;
+    var table = layui.table;
+    var tableX = layui.tableX;
+    var util = layui.util;
+    var admin = layui.admin;
+    var formX = layui.formX;
+
+    /* 渲染表格 */
+    var insTb = tableX.render({
+      elem: '#scroomTable',
+      url: '${ctxPath}/student/scroom/page',
+      page: true,
+      toolbar: ['<p>',
+        '</p>'].join(''),
+      cellMinWidth: 100,
+      cols: [[
+        {type: 'numbers'},
+        {field: 'floor', title: '楼号', sort: true},
+        {field: 'houseNumber', title: '教室门牌号', sort: true},
+        {field: 'comments', title: '教室编号', sort: true},
+        {
+          field: 'status', title: '状态', sort: true, templet: function (d) {
+            var str = "";
+            switch (d.status) {
+              case '0':
+                str = "空闲中";
+                break;
+              case '1':
+                str = "<span style='color: red'>使用中</span>";
+                break;
+            }
+            return str;
+          }
+        },
+        {
+          field: 'createTime', title: '创建时间', templet: function (d) {
+            return util.toDateString(d.createTime);
+          }, sort: true
+        }
+      ]]
+    });
+
+    /* 表格搜索 */
+    form.on('submit(scroomTbSearch)', function (data) {
+      insTb.reload({where: data.field, page: {curr: 1}});
+      return false;
+    });
+
+  });
+</script>
+</body>
+</html>

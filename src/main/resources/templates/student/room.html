@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <:include file="../common/css.html" title="宿舍信息管理"/>
+</head>
+<body>
+<!-- 正文开始 -->
+<div class="layui-fluid">
+  <div class="layui-card">
+    <div class="layui-card-body">
+      <!-- 表格工具栏 -->
+      <!-- 数据表格 -->
+      <table id="roomTable" lay-filter="roomTable"></table>
+    </div>
+  </div>
+</div>
+<:include file="../common/js.html"/>
+<script>
+  layui.use(['layer', 'form', 'table', 'tableX', 'util', 'admin', 'dropdown', 'formX'], function () {
+    var $ = layui.jquery;
+    var layer = layui.layer;
+    var form = layui.form;
+    var table = layui.table;
+    var tableX = layui.tableX;
+    var util = layui.util;
+    var admin = layui.admin;
+    var formX = layui.formX;
+
+    /* 渲染表格 */
+    var insTb = tableX.render({
+      elem: '#roomTable',
+      url: '${ctxPath}/student/room/page',
+      page: true,
+      toolbar: ['<p>',
+        '</p>'].join(''),
+      cellMinWidth: 100,
+      cols: [[
+        {type: 'checkbox'},
+        {type: 'numbers'},
+        {field: 'shno', title: '公寓楼号', sort: true},
+        {field: 'spno', title: '宿舍门牌号', sort: true},
+        {field: 'roomNo', title: '宿舍编号', sort: true},
+        {field: 'sperno', title: '可住几人', sort: true},
+        {
+          field: 'status', title: '状态', sort: true, templet: function (d) {
+            var str = "";
+            switch (d.status) {
+              case '0':
+                str = "未满员";
+                break;
+              case '1':
+                str = "已满员";
+                break;
+            }
+            return str;
+          }
+        },
+        {
+          field: 'createTime', title: '创建时间', templet: function (d) {
+            return util.toDateString(d.createTime);
+          }, sort: true
+        }
+      ]]
+    });
+
+    /* 表格搜索 */
+    form.on('submit(roomTbSearch)', function (data) {
+      insTb.reload({where: data.field, page: {curr: 1}});
+      return false;
+    });
+
+    /* 表格工具条点击事件 */
+    table.on('tool(roomTable)', function (obj) {
+      if ('edit' === obj.event) { // 修改
+        showEditModel(obj.data);
+      } else if ('del' === obj.event) { // 删除
+        doDel(obj);
+      }
+    });
+
+    /* 表格头工具栏点击事件 */
+    table.on('toolbar(roomTable)', function (obj) {
+      if ('add' === obj.event) { // 添加
+        showEditModel();
+      } else if ('del' === obj.event) { // 删除
+        var checkRows = table.checkStatus('roomTable');
+        if (0 === checkRows.data.length) {
+          return layer.msg('请选择要删除的数据', {icon: 2, anim: 6});
+        }
+        var ids = checkRows.data.map(function (d) {
+          return d.id;
+        });
+        doDel({ids: ids});
+      }
+    });
+
+    /* 显示表单弹窗 */
+    function showEditModel(mData) {
+      admin.open({
+        type: 1,
+        title: (mData ? '修改' : '添加') + '宿舍信息',
+        content: $('#roomEditDialog').html(),
+        success: function (layero, dIndex) {
+          // 回显表单数据
+          form.val('roomEditForm', mData);
+          // 表单提交事件
+          form.on('submit(roomEditSubmit)', function (data) {
+            var loadIndex = layer.load(2);
+            $.post(mData ? '${ctxPath}/student/room/update' : '${ctxPath}/student/room/save', data.field, function (res) {
+              layer.close(loadIndex);
+              if (0 === res.code) {
+                layer.close(dIndex);
+                layer.msg(res.msg, {icon: 1});
+                insTb.reload({page: {curr: 1}});
+              } else {
+                layer.msg(res.msg, {icon: 2, anim: 6});
+              }
+            });
+            return false;
+          });
+        }
+      });
+    }
+
+    /* 删除 */
+    function doDel(obj) {
+      if (obj.ids) {  // 批量删除
+        admin.confirm('确定要删除选中数据吗？', function (i) {
+          layer.close(i);
+          var loadIndex = layer.load(2);
+          admin.req('${ctxPath}/student/room/removeBatch', JSON.stringify(obj.ids), function (res) {
+            layer.close(loadIndex);
+            if (0 === res.code) {
+              layer.msg(res.msg, {icon: 1});
+              insTb.reload({page: {curr: 1}});
+            } else {
+              layer.msg(res.msg, {icon: 2, anim: 6});
+            }
+          }, 'post');
+        });
+      } else {  // 单个删除
+        var loadIndex = layer.load(2);
+        $.get('${ctxPath}/student/room/remove', {id: obj.data.id}, function (res) {
+          layer.close(loadIndex);
+          if (0 === res.code) {
+            layer.msg(res.msg, {icon: 1});
+            insTb.reload({page: {curr: 1}});
+          } else {
+            layer.msg(res.msg, {icon: 2, anim: 6});
+          }
+        });
+      }
+    }
+
+  });
+</script>
+</body>
+</html>

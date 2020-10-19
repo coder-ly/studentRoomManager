@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.egao.base.mapper.LogisticsMapper">
+
+    <!-- 关联查询sql -->
+    <sql id="relSelect">
+        SELECT a.*,b.true_name studentName,c.room_no roomName
+        FROM tb_logistics a
+        left join sys_user b on a.student_no = b.id_card
+        left join tb_room c on a.room_no = c.id
+        <where>
+            <if test="page!=null and page.pageData!=null">
+                <if test="page.pageData.id != null">
+                    AND a.id = #{page.pageData.id}
+                </if>
+                <if test="page.pageData.roomName != null">
+                    AND c.room_no LIKE CONCAT('%', #{page.pageData.roomName}, '%')
+                </if>
+                <if test="page.pageData.studentNo != null">
+                    AND a.student_no = #{page.pageData.studentNo}
+                </if>
+                <if test="page.pageData.status != null">
+                    AND a.status LIKE CONCAT('%', #{page.pageData.status}, '%')
+                </if>
+                <if test="page.pageData.comments != null">
+                    AND a.comments LIKE CONCAT('%', #{page.pageData.comments}, '%')
+                </if>
+                <if test="page.pageData.deleted!=null">
+                    AND a.deleted = #{page.pageData.deleted}
+                </if>
+                <if test="page.pageData.deleted==null">
+                    AND a.deleted = 0
+                </if>
+                <if test="page.pageData.createTimeStart!=null">
+                    AND a.create_time &gt;= #{page.pageData.createTimeStart}
+                </if>
+                <if test="page.pageData.createTimeEnd!=null">
+                    AND a.create_time &lt;= #{page.pageData.createTimeEnd}
+                </if>
+            </if>
+        </where>
+        order by create_time desc
+    </sql>
+
+    <!-- 分页查询 -->
+    <select id="listPage" resultType="com.egao.base.entity.Logistics">
+        <include refid="relSelect"></include>
+    </select>
+
+    <!-- 查询全部 -->
+    <select id="listAll" resultType="com.egao.base.entity.Logistics">
+        <include refid="relSelect"></include>
+    </select>
+
+</mapper>

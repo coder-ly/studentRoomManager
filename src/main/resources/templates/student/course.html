@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <:include file="../common/css.html" title="课程信息表管理"/>
+</head>
+<body>
+<!-- 正文开始 -->
+<div class="layui-fluid">
+  <div class="layui-card">
+    <div class="layui-card-body">
+      <!-- 表格工具栏 -->
+      <form class="layui-form toolbar">
+        <div class="layui-form-item">
+          <div class="layui-inline">
+            <label class="layui-form-label">课程名称:</label>
+            <div class="layui-input-inline">
+              <input name="courseName" class="layui-input" placeholder="输入课程名称"/>
+            </div>
+          </div>
+          <div class="layui-inline">&emsp;
+            <button class="layui-btn icon-btn" lay-filter="courseTbSearch" lay-submit>
+              <i class="layui-icon">&#xe615;</i>搜索
+            </button>
+          </div>
+        </div>
+      </form>
+      <!-- 数据表格 -->
+      <table id="courseTable" lay-filter="courseTable"></table>
+    </div>
+  </div>
+</div>
+<!-- 表格操作列 -->
+<script type="text/html" id="courseTbBar">
+
+</script>
+<!-- 表单弹窗 -->
+<:include file="../common/js.html"/>
+<script>
+  layui.use(['layer', 'form', 'table', 'tableX', 'util', 'admin', 'dropdown'], function () {
+    var $ = layui.jquery;
+    var layer = layui.layer;
+    var form = layui.form;
+    var table = layui.table;
+    var tableX = layui.tableX;
+    var util = layui.util;
+    var admin = layui.admin;
+
+    /* 渲染表格 */
+    var insTb = tableX.render({
+      elem: '#courseTable',
+      url: '${ctxPath}/student/course/page',
+      page: true,
+      toolbar: ['<p>',
+        '<button lay-event="elective" class="layui-btn layui-btn-sm layui-btn-danger icon-btn"><i class="layui-icon">&#xe640;</i>选课</button>',
+        '</p>'].join(''),
+      cellMinWidth: 100,
+      cols: [[
+        {type: 'checkbox'},
+        {type: 'numbers'},
+        {field: 'courseName', title: '课程名称', sort: true},
+        {field: 'teacherName', title: '授课教师', sort: true},
+        {field: 'className', title: '授课教室', sort: true},
+        {
+          field: 'createTime', title: '创建时间', templet: function (d) {
+            return util.toDateString(d.createTime);
+          }, sort: true
+        }
+      ]]
+    });
+
+    /* 表格搜索 */
+    form.on('submit(courseTbSearch)', function (data) {
+      insTb.reload({where: data.field, page: {curr: 1}});
+      return false;
+    });
+
+
+    /* 表格头工具栏点击事件 */
+    table.on('toolbar(courseTable)', function (obj) {
+      if ('elective' === obj.event) { // 删除
+        var checkRows = table.checkStatus('courseTable');
+        if (0 === checkRows.data.length) {
+          return layer.msg('请选中要选择的课程', {icon: 2, anim: 6});
+        }
+        var ids = checkRows.data.map(function (d) {
+          return d.id;
+        });
+        doDel({ids: ids});
+      }
+    });
+
+
+    /* 删除 */
+    function doDel(obj) {
+      admin.confirm('确定要选择选中的课程吗？', function (i) {
+        layer.close(i);
+        var loadIndex = layer.load(2);
+        admin.req('${ctxPath}/student/course/electiveBatch', JSON.stringify(obj.ids), function (res) {
+          layer.close(loadIndex);
+          if (0 === res.code) {
+            layer.msg(res.msg, {icon: 1});
+            insTb.reload({page: {curr: 1}});
+          } else {
+            layer.msg(res.msg, {icon: 2, anim: 6});
+          }
+        }, 'post');
+      });
+
+    }
+
+    window.refreshTab = function () {
+      insTb.reload();
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.egao.base.mapper.ClassMapper">
+
+    <!-- 关联查询sql -->
+    <sql id="relSelect">
+        SELECT a.*,b.comments scrommName
+        FROM tb_class a
+        left join tb_scroom b on a.scroom = b.id
+        <where>
+            <if test="page!=null and page.pageData!=null">
+                <if test="page.pageData.id != null">
+                    AND a.id = #{page.pageData.id}
+                </if>
+                <if test="page.pageData.classNo != null">
+                    AND a.class_no = #{page.pageData.classNo}
+                </if>
+                <if test="page.pageData.className != null">
+                    AND a.class_name LIKE CONCAT('%', #{page.pageData.className}, '%')
+                </if>
+                <if test="page.pageData.institute != null">
+                    AND a.institute LIKE CONCAT('%', #{page.pageData.institute}, '%')
+                </if>
+                <if test="page.pageData.grade != null">
+                    AND a.grade LIKE CONCAT('%', #{page.pageData.grade}, '%')
+                </if>
+                <if test="page.pageData.scroom != null">
+                    AND a.scroom LIKE CONCAT('%', #{page.pageData.scroom}, '%')
+                </if>
+                <if test="page.pageData.profession != null">
+                    AND a.profession LIKE CONCAT('%', #{page.pageData.profession}, '%')
+                </if>
+                <if test="page.pageData.classNum != null">
+                    AND a.classNum LIKE CONCAT('%', #{page.pageData.classNum}, '%')
+                </if>
+                <if test="page.pageData.comments != null">
+                    AND a.comments LIKE CONCAT('%', #{page.pageData.comments}, '%')
+                </if>
+                <if test="page.pageData.deleted!=null">
+                    AND a.deleted = #{page.pageData.deleted}
+                </if>
+                <if test="page.pageData.deleted==null">
+                    AND a.deleted = 0
+                </if>
+                <if test="page.pageData.createTimeStart!=null">
+                    AND a.create_time &gt;= #{page.pageData.createTimeStart}
+                </if>
+                <if test="page.pageData.createTimeEnd!=null">
+                    AND a.create_time &lt;= #{page.pageData.createTimeEnd}
+                </if>
+            </if>
+        </where>
+    </sql>
+
+    <!-- 分页查询 -->
+    <select id="listPage" resultType="com.egao.base.entity.ClassA">
+        <include refid="relSelect"></include>
+    </select>
+
+    <!-- 查询全部 -->
+    <select id="listAll" resultType="com.egao.base.entity.ClassA">
+        <include refid="relSelect"></include>
+    </select>
+
+</mapper>
